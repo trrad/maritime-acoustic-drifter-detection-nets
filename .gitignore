@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+rtl/build/
+runs/
+
+# ERDDAP / SalishSeaCast NetCDF caches — too large to track (~10 GB).
+experiments/*/cache/
+
+# Runtime task lock
+.claude/scheduled_tasks.lock
+
+# Internal business/strategy notes — not for the public repo
+docs/internal/

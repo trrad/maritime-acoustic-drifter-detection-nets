@@ -1,0 +1,31 @@
+# Yosys synthesis script for PF Top → iCE40UP5K
+# Usage: yosys -s synth/synth_pf_ice40.ys
+
+# ALU sources
+read_verilog -Isrc src/lns8_pkg.v
+read_verilog -Isrc src/sat_clip.v
+read_verilog -Isrc src/priority_enc.v
+read_verilog -Isrc src/barrel_shifter.v
+read_verilog -Isrc src/phi_rom.v
+read_verilog -Isrc src/exp_coeff_rom.v
+read_verilog -Isrc src/log_frac_rom.v
+read_verilog -Isrc src/lns8_muldiv.v
+read_verilog -Isrc src/lns8_add.v
+read_verilog -Isrc src/lns8_exp.v
+read_verilog -Isrc src/lns8_ln.v
+read_verilog -Isrc src/lns8_alu.v
+
+# PF sources
+read_verilog -Isrc src/pf_ucode_rom.v
+read_verilog -Isrc src/pf_memory.v
+read_verilog -Isrc src/pf_sequencer.v
+read_verilog -Isrc src/pf_resampler.v
+read_verilog -Isrc src/lfsr_rng.v
+read_verilog -Isrc src/spi_slave.v
+read_verilog -Isrc src/pf_top.v
+
+# Synthesize for iCE40
+synth_ice40 -top pf_top -json build/pf_top.json
+
+# Print statistics
+stat

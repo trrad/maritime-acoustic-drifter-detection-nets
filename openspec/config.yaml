@@ -1,0 +1,152 @@
+schema: spec-driven
+
+context: |
+  EML Research: exploratory project investigating the Exp-Minus-Log operator
+  and a cycle-accurate 8-bit LNS arithmetic engine targeted at small FPGAs.
+  The active application track is a particle-filter pipeline running on the
+  LNS8 engine — currently a 6D drone POC, expanding to a 15-25D maritime
+  drifter mesh.
+
+  Stack: Python via `uv run` (no venv — `uv run --with <deps> python ...`).
+  Primary deps: numpy, scipy, matplotlib. Optional: torch, jax. RTL is
+  Verilog (cocotb / icarus elsewhere — Python harness only at this layer).
+
+  Pipeline shape (the architectural template, set by the 6D POC):
+    rtl/vectors/gen_<scenario>.py   — emits .hex (for RTL) and .jsonl (for Python)
+    experiments/<n>_<pf>.py         — Python PF reference (float64 and/or LNS8)
+    experiments/<n>_dashboard.py    — HTML5 Canvas + vanilla JS dashboard,
+                                      reads .jsonl, serves on localhost
+    rtl/vectors/pf_*_compare.py     — RTL-vs-Python cycle-by-cycle diff harness
+
+  LNS8 arithmetic reference: experiments/08_lns_cycle_accurate.py. All cycle
+  counts and accuracy claims are measured against that engine.
+
+  Conventions:
+    - Numerical error is reported in absolute physical units (meters,
+      seconds, m/s). Avoid normalized ratios except as supplementary info.
+    - Cycle counts are reported as totals AND as a per-stage breakdown
+      (predict / weight / resample / recenter).
+    - Existing scenario/PF/dashboard files for the 6D POC are FROZEN — they
+      are the regression baseline. New work goes in new files.
+
+  Tests: pytest + numpy.testing. If a module is touched and has no tests,
+  the change introduces them as part of its tasks. Run with `uv run pytest`.
+
+rules:
+  specs:
+    - |
+      Each scenario IS a test case. Write scenarios as concrete, observable
+      outcomes: WHEN <input/setup>, THEN <measurable result>. For numerical
+      work this means quantitative tolerances — RMSE bounds in meters,
+      cycle-count ceilings, effective-particle-count floors, dimensional
+      bounds. Vague scenarios ("the PF should converge") produce vague
+      tests. Concrete: "after 60 steps the position RMSE for anchor-class
+      nodes is below 100 m".
+    - |
+      Requirements describe observable behaviors and numerical contracts,
+      not implementation choices. "The system SHALL emit one JSONL record
+      per timestep containing all nodes" is testable. "The system SHALL use
+      cKDTree for neighbor queries" is a design decision that belongs in
+      design.md, not in the spec.
+    - |
+      When a requirement references the LNS8 engine's accuracy/cycle
+      properties, name the comparison baseline explicitly (float64 reference
+      from experiments/0X.py). Do not rely on absolute LNS8 numbers in
+      isolation — the engine's behavior is defined relative to its float
+      counterpart and the 6D POC trend (LNS8 within 1.3× float RMSE).
+
+  design:
+    - |
+      Address testability for each module:
+      - Can it be tested in isolation, without standing up the dashboard
+        server, the LNS8 engine, or a full scenario file?
+      - Does it take its dependencies as arguments, or reach for module
+        globals / file-system paths?
+      - Are physical units explicit at every boundary (variable names like
+        `range_m`, `vx_ms`, `lat_deg`, not bare `range`, `vx`, `lat`)?
+      If a design makes testing hard — e.g. a PF that owns its own RNG seed
+      and scenario loading — that's a design smell. Inject seeds and
+      scenarios; let the test fix them.
+    - |
+      Decompose by pipeline stage and behavior, not by file.
+      The pipeline has well-defined seams: scenario generation, sensor
+      models, dynamics propagation, PF predict/weight/resample, validation,
+      visualization. The design's module boundaries should map to those
+      seams and to spec requirements — not to "let's create types.py,
+      utils.py, helpers.py".
+    - |
+      Be explicit about the float64 / LNS8 / RTL split. Each PF
+      implementation consumes the same scenario file and emits the same
+      estimate-stream schema. Document where physical-unit conversion
+      happens (it must NOT happen inside the LNS8 arithmetic path — that's
+      the whole point of delta-encoding).
+    - |
+      Frozen-baseline rule: if a design touches a file that the standing
+      specs mark as a regression baseline (the 6D POC files), call it out
+      explicitly and justify. Default is to add new files alongside, not
+      modify in place.
+    - |
+      The simulation enforces integrity through code structure, not convention.
+      See docs/simulation_integrity.md for the 5-level model. In practice:
+      truth data is invisible to PF modules (separate types), node capabilities
+      are intrinsic to class definitions (no external grants), and physical bounds
+      are asserted in tests (not documented in prose).
+
+  tasks:
+    - |
+      Tasks MUST be behavior-oriented, not file-oriented.
+
+      BAD (file-oriented, separates test from code):
+        - [ ] 2.4 Create `maritime/dynamics.py` — propagate function
+        - [ ] 2.6 Write `tests/test_dynamics.py` — advection, IMU bias
+
+      GOOD (behavior-oriented, each task is a testable behavior):
+        - [ ] 2.1 Node truth advects with the current field — Lagrangian
+              integration matches analytical ground-truth trajectory within
+              5 m over 60 s for the synthetic eddy field
+              (rtl/vectors/maritime/dynamics.py, tests/maritime/test_dynamics.py)
+
+      Name tasks after the behavior they deliver, not the file they create.
+      Reference file paths parenthetically for navigation.
+    - |
+      Group tasks into alternating Test and Implementation phases per module:
+
+        ## N. <Module> — Tests
+        - [ ] N.1 <Behavior> tests — <key scenarios from spec>
+              (<test file path>)
+
+        ## N+1. <Module> — Implementation
+        - [ ] (N+1).1 <Behavior> — <what it does>
+              (<production file paths>)
+
+      Test-phase tasks: write failing tests that define the behavioral
+      contract (RED). Implementation-phase tasks: make tests pass (GREEN).
+      Use pytest + numpy.testing; seed all RNGs explicitly in tests.
+
+      This enforces TDD at the task structure level.
+    - |
+      Exceptions (these don't need test/implementation splitting):
+        - Setup (pytest scaffolding, dependency adds, data file bundling) —
+          standalone group at start
+        - Integration / wiring (composing already-tested modules into a
+          scenario or PF) — standalone group, but MUST end with an
+          end-to-end smoke run
+        - Pure config / data files (bundled coastline, bathymetry sample) —
+          no test phase needed, but a checksum/shape sanity check is
+          welcome
+        - Dashboard work — visual; standalone group with an explicit
+          manual-verification sub-step (load page, confirm trails render,
+          confirm time-slider scrubs)
+        - Verification (run full pipeline, check RMSE bounds, check cycle
+          counts) — standalone group at end. The verification group is
+          where the spec's quantitative tolerances are checked end-to-end.
+    - |
+      End-to-end verification is mandatory for any change that touches the
+      pipeline. The verification group must include at minimum:
+        - Generate the scenario from CLI
+        - Run each PF implementation against the scenario
+        - Assert spec-stated RMSE / cycle-count bounds
+        - Confirm dashboard loads and renders without console errors
+      A change is not complete just because unit tests pass — the pipeline
+      has to demonstrably work end-to-end against the spec's numerical
+      contract.

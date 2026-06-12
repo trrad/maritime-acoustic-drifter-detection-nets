@@ -1,0 +1,43 @@
+[project]
+name = "eml-research"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy",
+    "scipy",
+    "matplotlib",
+    "pytest",
+    "copernicusmarine>=2.4.0",
+    "xarray>=2026.4.0",
+    "netcdf4>=1.7.4",
+]
+
+[dependency-groups]
+dev = [
+    "import-linter",
+    "playwright>=1.58.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.importlinter]
+root_package = "rtl.vectors.maritime"
+
+[[tool.importlinter.contracts]]
+name = "PF library does not access truth"
+type = "forbidden"
+# The contract enforces *direct* imports only. The transitive path
+# pf_float -> map_payload -> current_fields exists because
+# map_payload imports CurrentField as a Protocol type for its own
+# climatology helper signatures; PF code accesses only RegionalMap /
+# ClimatologyGrid via map_payload, never CurrentField. The
+# operational invariant we enforce is "pf_float.py does not name a
+# truth symbol in its own source"; allow_indirect_imports = true
+# scopes the contract to that direct invariant.
+allow_indirect_imports = "true"
+source_modules = ["rtl.vectors.maritime.pf_float"]
+forbidden_modules = [
+    "rtl.vectors.maritime.scenario_truth_schema",
+    "rtl.vectors.maritime.current_fields",
+]

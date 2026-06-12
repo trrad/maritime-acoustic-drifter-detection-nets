@@ -1,0 +1,22 @@
+# Yosys synthesis script for LNS8 ALU → iCE40UP5K
+# Usage: yosys -s synth/synth_ice40.ys
+
+# Read all source files
+read_verilog -Isrc src/lns8_pkg.v
+read_verilog -Isrc src/sat_clip.v
+read_verilog -Isrc src/priority_enc.v
+read_verilog -Isrc src/barrel_shifter.v
+read_verilog -Isrc src/phi_rom.v
+read_verilog -Isrc src/exp_coeff_rom.v
+read_verilog -Isrc src/log_frac_rom.v
+read_verilog -Isrc src/lns8_muldiv.v
+read_verilog -Isrc src/lns8_add.v
+read_verilog -Isrc src/lns8_exp.v
+read_verilog -Isrc src/lns8_ln.v
+read_verilog -Isrc src/lns8_alu.v
+
+# Synthesize for iCE40
+synth_ice40 -top lns8_alu -json build/lns8_alu.json
+
+# Print statistics
+stat

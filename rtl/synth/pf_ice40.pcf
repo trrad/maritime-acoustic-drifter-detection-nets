@@ -1,0 +1,16 @@
+# Pin constraints for PF Top on iCEBreaker (iCE40UP5K-SG48)
+# Minimal pinout: clock, reset, SPI, status LEDs
+
+# System
+set_io clk         35    # 12 MHz oscillator
+set_io rst_n       10    # Button (active low)
+
+# SPI slave
+set_io spi_sclk    2
+set_io spi_mosi    4
+set_io spi_miso    6
+set_io spi_cs_n    9
+
+# Status
+set_io busy        11    # LED: PF running
+set_io step_done   13    # LED: step complete (pulse)

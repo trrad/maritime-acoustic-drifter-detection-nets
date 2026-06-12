@@ -1,0 +1,47 @@
+# Pin constraints for iCEBreaker (iCE40UP5K-SG48)
+# Minimal pin assignment for characterization — no real board needed
+
+set_io clk        35   # 12 MHz oscillator on iCEBreaker
+
+set_io rst_n      10   # active-low reset (button)
+
+# Operand A
+set_io a_sign     2
+set_io a_mag[0]   4
+set_io a_mag[1]   6
+set_io a_mag[2]   9
+set_io a_mag[3]   11
+set_io a_mag[4]   13
+set_io a_mag[5]   18
+set_io a_mag[6]   19
+set_io a_mag[7]   20
+
+# Operand B
+set_io b_sign     21
+set_io b_mag[0]   23
+set_io b_mag[1]   25
+set_io b_mag[2]   26
+set_io b_mag[3]   27
+set_io b_mag[4]   28
+set_io b_mag[5]   31
+set_io b_mag[6]   32
+set_io b_mag[7]   34
+
+# Control
+set_io op[0]      36
+set_io op[1]      37
+set_io op[2]      38
+set_io op_valid   42
+
+# Results
+set_io r_sign     43
+set_io r_mag[0]   44
+set_io r_mag[1]   45
+set_io r_mag[2]   46
+set_io r_mag[3]   47
+set_io r_mag[4]   48
+set_io r_mag[5]   3
+set_io r_mag[6]   12
+set_io r_mag[7]   14
+set_io r_valid    16
+set_io busy       17
