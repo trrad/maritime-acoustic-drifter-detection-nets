@@ -37,10 +37,7 @@ that mostly does nothing?**
 2. **[The LNS8 FPGA engine](#the-lns8-fpga-engine)** (dormant milestone) — a
    complete 8-bit logarithmic-number-system ALU and 6-D particle filter in
    Verilog: 304 bytes of lookup tables, ~2100 LUTs, sub-milliwatt operation
-   on a ~$5 FPGA. It began as a hunt for a practical use of the EML operator
-   `eml(x, y) = exp(x) − ln(y)` ([Odrzywołek 2026](https://arxiv.org/abs/2603.21852))
-   and ended with an honest negative result: the LNS arithmetic carries all
-   the value. The particle filter survived the pivot; the operator didn't.
+   on a ~$5 FPGA.
 
 The connection: a drifter has no propeller and a coin-cell-scale power
 budget, so the state estimator is the main compute load. The fleet
@@ -222,15 +219,13 @@ GIFs are rebuilt from sweep frames with `uv run python dev/make_readme_media.py`
 `rtl/` (22 Verilog modules) + `experiments/01`–`11_*.py` (theory, precision
 studies, cycle-accurate Python reference).
 
-This is where the project started — as a nerd-snipe. Odrzywołek 2026
-([arXiv:2603.21852](https://arxiv.org/abs/2603.21852)) shows that the single
-operator `eml(x, y) = exp(x) − ln(y)`, composed with the constant 1,
-generates every elementary function — a continuous analog of the NAND gate.
-Hunting for a practical use led to logarithmic number systems, where exp and
-ln are nearly-free table lookups, and from there to the question that stuck:
-**how small can a real estimator get?** The proving ground became a 6-D
-particle filter (position + velocity, 128 particles, 3 sensors) targeting
-the iCE40UP5K, a ~$5 FPGA:
+In a logarithmic number system, numbers are stored as their logarithms:
+multiply and divide become integer adds, and exp/ln become small table
+lookups. That makes LNS a natural fit for estimation workloads — dense in
+multiplies and exponentials — on hardware with no FPU and a microwatt
+budget. The question this workstream answers: **how small can a real
+estimator get?** The proving ground is a 6-D particle filter (position +
+velocity, 128 particles, 3 sensors) targeting the iCE40UP5K, a ~$5 FPGA:
 
 - **Integer-only 8-bit LNS ALU** — MUL/DIV in 1 cycle, ADD in 4 (Gaussian-log
   table), EXP/LN in 2 (48-byte coefficient ROMs).
@@ -245,16 +240,12 @@ the iCE40UP5K, a ~$5 FPGA:
 - **Synthesis** — ~2124 LUTs (40 % of the UP5K), 17 BRAMs. Estimated power:
   **0.12 mW at 1 MHz** (14 PF steps/s) to 1.57 mW at 30 MHz (406 steps/s).
 
-The negative result worth recording: **EML itself never earned a place in
-the design.** Once a real workload was on the table, the useful primitive
-set was plain LNS MUL/DIV/ADD/EXP/LN — the one-operator elegance bought
-nothing. What survived is the LNS engine, and the question of what it should
-compute, which is what the fleet simulations above exist to answer.
-
 Status: verified in simulation and synthesized; not yet run on physical
 hardware. Deliberately dormant — the next design decisions (LNS10? which
 sensor models in ROM?) should be driven by measured demands from the fleet
-simulations, not guesses. History: [docs/archive/](docs/archive/).
+simulations, not guesses. History, including the operator-theory
+nerd-snipe the project originally grew out of: [docs/archive/](docs/archive/)
+and [docs/overview.md](docs/overview.md).
 
 ---
 
@@ -262,7 +253,7 @@ simulations, not guesses. History: [docs/archive/](docs/archive/).
 
 ```
 experiments/
-  01–11_*.py            EML theory, LNS precision studies, PF prototypes (frozen baseline)
+  01–11_*.py            LNS precision studies, PF prototypes (frozen baseline)
   harmonic_prototype/   active maritime stack: physics, nav, acoustics, fleet sims
 rtl/                    LNS8 ALU + 6-D particle filter in Verilog; testbenches, synth, vectors
 docs/                   curated docs (see docs/README.md) + raw research notes
@@ -290,6 +281,6 @@ docstring; sweep outputs land in `experiments/harmonic_prototype/figures/`.
 ## About
 
 A personal research project by [Tim Radcliffe](https://tradcliffe.com).
-Apart from the cited paper (Odrzywołek 2026, [arXiv:2603.21852](https://arxiv.org/abs/2603.21852))
-and the [SalishSeaCast](https://salishsea.eos.ubc.ca/) reanalysis it builds
-on, all simulation, RTL, and analysis here is original work.
+Apart from the [SalishSeaCast](https://salishsea.eos.ubc.ca/) reanalysis it
+builds on and the literature cited in [docs/references.md](docs/references.md), all
+simulation, RTL, and analysis here is original work.
